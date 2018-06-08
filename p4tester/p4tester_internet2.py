@@ -1,5 +1,6 @@
 from multiprocessing import Pool, cpu_count
 from router import router, router_rule
+from bdd import bdd
 
 internet2_routers = {}
 internet2_port_map = {}
@@ -78,10 +79,16 @@ def build_internet2_topology():
 
 
 def main():
-    for x in internet2_router_names:
-        parse_internet2(x)
-    build_internet2_topology()
-
+    # for x in internet2_router_names:
+    #    parse_internet2(x)
+    # build_internet2_topology()
+    b1 = bdd(32)
+    b1.parse_ipv4_prefix('3.0.0.0/7')
+    b2 = bdd(32)
+    b2.parse_ipv4_prefix('3.0.0.0/8')
+    b3 = bdd(32)
+    b3.intersection(b1, b2)
+    b2.print_bdd()
 
 if __name__ == '__main__':
     main()
