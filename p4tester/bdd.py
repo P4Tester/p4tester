@@ -7,6 +7,11 @@ class bdd:
         self.T.append([1, 1, 1])
         self.T[0][0] = N + 1
         self.T[1][0] = N + 1
+        self.G = []
+        for i in range(N+2):
+            self.G.append([])
+            for j in range(N+2):
+                self.G[i].append(-1)
         for i in range(N):
             self.T.append([N-i, 0, 0])
 
@@ -29,23 +34,23 @@ class bdd:
         prefix = int(ipv4[1])
         for i in range(prefix):
             if ip[i] == 1:
-                self.T[33 - i][1] = 0
-                self.T[33 - i][2] = 32 - i
+                self.T[self.N + 1 - i][1] = 0
+                self.T[self.N + 1 - i][2] = self.N - i
             else:
-                self.T[33 - i][1] = 32 - i
-                self.T[33 - i][2] = 0
+                self.T[self.N + 1 - i][1] = self.N - i
+                self.T[self.N + 1 - i][2] = 0
 
-        for i in range(prefix, 32):
-            self.T[33 - i][1] = 32 - i
-            self.T[33 - i][2] = 32 - i
+        for i in range(prefix, self.N):
+            self.T[self.N + 1 - i][1] = self.N - i
+            self.T[self.N + 1 - i][2] = self.N - i
 
     def mk(self, var, l, h):
         if l is None:
             print var
             exit(1)
         if l == h:
-            self.print_bdd()
-            exit
+            # print l
+            # exit(1)
             return l
         u = self.get_u(var)
         self.T[u][0] = var
@@ -60,24 +65,28 @@ class bdd:
             print u1, u2
         var1 = b1.get_var(u1)
         var2 = b2.get_var(u2)
-        if u1 <= 1 and u2 <= 1:
+        u = 0
+        if self.G[u1][u2] != -1:
+            return self.G[u1][u2]
+        elif u1 <= 1 and u2 <= 1:
             if op == '&':
                 return u1 & u2
             elif op == '|':
                 return u1 | u2
-
         elif var1 == var2:
-            return self.mk(var1,
+            self.G[u1][u2] =  self.mk(var1,
                            self.apply_op(op, b1, b2, b1.get_low(u1), b2.get_low(u2)),
                            self.apply_op(op, b1, b2, b1.get_high(u1), b2.get_high(u2)))
+
         elif var1 < var2:
-            return self.mk(var1,
+            self.G[u1][u2] = self.mk(var1,
                            self.apply_op(op, b1, b2, b1.get_low(u1), u2),
                            self.apply_op(op, b1, b2, b1.get_high(u1), u2))
         elif var1 > var2:
-            return self.mk(var2,
+            self.G[u1][u2] = self.mk(var2,
                            self.apply_op(op, b1, b2, u1, b2.get_low(u2)),
                            self.apply_op(op, b1, b2, u1, b2.get_high(u2)))
+        return self.G[u1][u2]
 
     def complement(self):
         for i in self.T[2:]:
@@ -126,6 +135,14 @@ class bdd:
         for i in range(self.N):
             print '%d %d %d %d'%(i+2, self.T[i+2][0], self.T[i+2][1], self.T[i+2][2])
 
+    def is_false(self):
+        # TODO
+        return  False
+
+    def any_sat(self):
+        # TODO
+        return 1
+
 
 def create_true_bdd(n):
     b = bdd(n)
@@ -143,25 +160,3 @@ def create_false_bdd(n):
     return b
 
 
-
-
-def apply_op(op, b1, b2, u1=-1, u2=-1):
-    T = []
-    T.append((0, 0, 0))
-    T.append((1, 1, 1))
-    if u1 == -1 and u2 == -1:
-        u1 = len(b1.T) -1
-        u2 = len(b2.T) - 1
-    var1 = b1.get_var(u1)
-    var2 = b2.get_var(u2)
-    if u1 <= 1 and u2 <= 1:
-        if op == '^':
-            return
-        elif op == '|':
-            return
-    elif var1 == var2:
-        pass
-    elif var1 < var2:
-        pass
-    elif var1 > var2:
-        pass

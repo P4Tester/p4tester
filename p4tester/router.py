@@ -1,13 +1,37 @@
+def convert_ip_to_byte_array(str):
+    ip = str.split('.')
+    array = []
+    for i in ip:
+        x = int(i)
+        for j in range(8):
+            array.append(x / (1 << (7 - j)))
+            x = x % (1 << (7 - j))
+    return array
+
+
+
 class router_rule:
     def __init__(self, match, next_hop, port):
         self.match = match
         self.next_hop = next_hop
         self.port = port
 
+        ipv4 = match.split('/')
+        self.prefix = int(ipv4[1])
+        self.ip = convert_ip_to_byte_array(ipv4[0])
+
+    def get_prefix(self):
+        return self.prefix
+
+    def get_action(self):
+        return self.port
+
 
 class router:
     def __init__(self, name):
         self.rules = []
+        self.rule_count = [0 for _ in range(32)]
+        self.sort_rules = []
         self.name = name
         self.peer_ports = []
         self.local_ports = []
@@ -32,6 +56,8 @@ class router:
 
     def add_rule(self, rule):
         self.rules.append(rule)
+        self.rule_count[rule.get_prefix] += 1
+        self.sort_rules.append(None)
 
     def add_link(self, port, next_hop, r):
         self.next_hop_link[next_hop] = r
@@ -47,3 +73,16 @@ class router:
         if ip in self.local_ip:
             return True
         return False
+
+    def sort(self):
+        count = [0 for _ in range(32)]
+        for i in range(31):
+            count[i + 1] = count[i] + self.rule_count[i]
+
+        for r in self.rules:
+            pos = count[r.get_prefix()]
+            count[r.get_prefix()] += 1
+            self.sort_rules[pos] = r
+
+    def get_rule_number(self):
+        return len(self.rules)

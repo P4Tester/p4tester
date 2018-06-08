@@ -1,6 +1,6 @@
 from multiprocessing import Pool, cpu_count
 from router import router, router_rule
-from bdd import bdd
+from bdd import bdd, create_true_bdd
 
 internet2_routers = {}
 internet2_port_map = {}
@@ -58,6 +58,7 @@ def parse_internet2(router_name):
                 r.add_local_port(port, next_hop)
             else:
                 pass
+    r.sort()
     f.close()
 
 
@@ -78,17 +79,53 @@ def build_internet2_topology():
                 exit(1)
 
 
+def generate_porbe(name):
+    r = internet2_routers[name]
+    bdd_array = []
+    for r in r.sort_rules:
+        b = bdd(32)
+        b.parse_ipv4_prefix(r.match)
+        bdd_array.append(b)
+    Ha = create_true_bdd(32)
+    N = r.get_rule_number()
+    rh_array = []
+    probe_set = []
+    for i in range(N):
+        b = bdd(32)
+        b.intersection(bdd_array[i], Ha)
+
+        rh_array.append(b)
+
+        tmp = bdd(32)
+        tmp.subtract(Ha, bdd_array[i])
+        Ha = tmp.copy()
+        if b.is_false() is not False:
+            Hb = b.copy()
+            for j in range(i, N):
+                override = bdd(32)
+                override.intersection(Hb, bdd_array[j])
+                if override.is_false() is not False:
+                    if r.sort_rules[i].get_action() != r.sort_rules[j].get_action():
+                        probe_set.append(override)
+                tmp = bdd(32)
+                tmp.subtract(Hb, override)
+                Hb = tmp.copy()
+            pass
+
+
+
+
 def main():
-    # for x in internet2_router_names:
-    #    parse_internet2(x)
-    # build_internet2_topology()
+    for x in internet2_router_names:
+        parse_internet2(x)
+    build_internet2_topology()
     b1 = bdd(32)
-    b1.parse_ipv4_prefix('3.0.0.0/7')
+    b1.parse_ipv4_prefix('3.0.0.0/8')
     b2 = bdd(32)
-    b2.parse_ipv4_prefix('3.0.0.0/8')
+    b2.parse_ipv4_prefix('3.128.0.0/16')
     b3 = bdd(32)
     b3.intersection(b1, b2)
-    b2.print_bdd()
+    b3.print_bdd()
 
 if __name__ == '__main__':
     main()
