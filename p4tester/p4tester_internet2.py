@@ -27,7 +27,11 @@ def parse_internet2(router_name):
         f.readline()
     match = None
     flag = False
+    c = 0
     for l in f:
+        c += 1
+        if c > 20:
+            break
         if l.find(':') != -1:
             continue
         if l.find('default.iso') != -1:
