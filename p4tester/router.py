@@ -9,7 +9,6 @@ def convert_ip_to_byte_array(str):
     return array
 
 
-
 class router_rule:
     def __init__(self, match, next_hop, port):
         self.match = match
@@ -30,7 +29,7 @@ class router_rule:
 class router:
     def __init__(self, name):
         self.rules = []
-        self.rule_count = [0 for _ in range(32)]
+        self.rule_count = [0 for _ in range(33)]
         self.sort_rules = []
         self.name = name
         self.peer_ports = []
@@ -56,7 +55,7 @@ class router:
 
     def add_rule(self, rule):
         self.rules.append(rule)
-        self.rule_count[rule.get_prefix] += 1
+        self.rule_count[rule.get_prefix()] += 1
         self.sort_rules.append(None)
 
     def add_link(self, port, next_hop, r):
@@ -75,8 +74,8 @@ class router:
         return False
 
     def sort(self):
-        count = [0 for _ in range(32)]
-        for i in range(31):
+        count = [0 for _ in range(33)]
+        for i in range(32):
             count[i + 1] = count[i] + self.rule_count[i]
 
         for r in self.rules:

@@ -28,7 +28,12 @@ def parse_internet2(router_name):
     match = None
     flag = False
     for l in f:
+        if l.find(':') != -1:
+            continue
+        if l.find('default.iso') != -1:
+            break
         entry = l.strip('\n').split(' ')
+
         info = []
         for e in entry:
             if e is not '':
@@ -46,6 +51,22 @@ def parse_internet2(router_name):
             if len(info) < 5:
                 continue
             match = info[0]
+            if match.find('-') != -1:
+                print match
+                break
+            ipv4 = match.split('/')
+            if len(ipv4) != 2:
+                print match
+                break
+            else:
+                prefix = int(ipv4[1])
+                if prefix > 32 or prefix == 0:
+                    print match
+                    break
+                ip = ipv4[0].split('.')
+                if len(ip) > 4:
+                    print ip
+                    break
 
             if info[3] == 'indr':
                 flag = True
@@ -75,27 +96,25 @@ def build_internet2_topology():
                     flag_success = True
                     break
             if flag_success is False:
-                print port
+                print 'Port not found: ' + port
                 exit(1)
 
 
-def generate_porbe(name):
-    r = internet2_routers[name]
+def generate_probe(name):
+    router = internet2_routers[name]
     bdd_array = []
-    for r in r.sort_rules:
+    for r in router.sort_rules:
         b = bdd(32)
         b.parse_ipv4_prefix(r.match)
         bdd_array.append(b)
     Ha = create_true_bdd(32)
-    N = r.get_rule_number()
+    N = router.get_rule_number()
     rh_array = []
     probe_set = []
     for i in range(N):
         b = bdd(32)
         b.intersection(bdd_array[i], Ha)
-
         rh_array.append(b)
-
         tmp = bdd(32)
         tmp.subtract(Ha, bdd_array[i])
         Ha = tmp.copy()
@@ -105,27 +124,31 @@ def generate_porbe(name):
                 override = bdd(32)
                 override.intersection(Hb, bdd_array[j])
                 if override.is_false() is not False:
-                    if r.sort_rules[i].get_action() != r.sort_rules[j].get_action():
+                    if router.sort_rules[i].get_action() != router.sort_rules[j].get_action():
                         probe_set.append(override)
                 tmp = bdd(32)
                 tmp.subtract(Hb, override)
                 Hb = tmp.copy()
-            pass
+    return probe_set
 
 
+def test():
+    b1 = bdd(32)
+    b1.parse_ipv4_prefix('3.0.0.0/8')
+    b2 = bdd(32)
+    b2.parse_ipv4_prefix('3.0.0.0/16')
+    b3 = bdd(32)
+    b3.intersection(b1, b2)
+    b3.print_bdd()
+    print b3.any_sat()
 
 
 def main():
     for x in internet2_router_names:
         parse_internet2(x)
-    build_internet2_topology()
-    b1 = bdd(32)
-    b1.parse_ipv4_prefix('3.0.0.0/8')
-    b2 = bdd(32)
-    b2.parse_ipv4_prefix('3.128.0.0/16')
-    b3 = bdd(32)
-    b3.intersection(b1, b2)
-    b3.print_bdd()
+    # build_internet2_topology()
+    print len(generate_probe(internet2_router_names[0]))
+
 
 if __name__ == '__main__':
     main()

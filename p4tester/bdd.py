@@ -1,3 +1,5 @@
+G = [[-1 for _ in range(34)] for _ in range(34)]
+
 class bdd:
     def __init__(self, N):
         self.end = [0, 1]
@@ -7,11 +9,6 @@ class bdd:
         self.T.append([1, 1, 1])
         self.T[0][0] = N + 1
         self.T[1][0] = N + 1
-        self.G = []
-        for i in range(N+2):
-            self.G.append([])
-            for j in range(N+2):
-                self.G[i].append(-1)
         for i in range(N):
             self.T.append([N-i, 0, 0])
 
@@ -21,6 +18,8 @@ class bdd:
     def convert_ip_to_byte_array(self, str):
         ip = str.split('.')
         array = []
+        if self.N > 32:
+            print str
         for i in ip:
             x = int(i)
             for j in range(8):
@@ -49,8 +48,6 @@ class bdd:
             print var
             exit(1)
         if l == h:
-            # print l
-            # exit(1)
             return l
         u = self.get_u(var)
         self.T[u][0] = var
@@ -59,37 +56,39 @@ class bdd:
         return u
 
     def apply_op(self, op, b1, b2, u1=-1, u2=-1):
+        global G
+        for i in range(34):
+            for j in range(34):
+                G[i][j] = -1
         if u1 == -1 and u2 == -1:
-            u1 = len(b1.T) - 1
-            u2 = len(b2.T) - 1
-            print u1, u2
+            u1 = self.N + 1
+            u2 = self.N + 1
         var1 = b1.get_var(u1)
         var2 = b2.get_var(u2)
-        u = 0
-        if self.G[u1][u2] != -1:
-            return self.G[u1][u2]
+        if G[u1][u2] != -1:
+            return G[u1][u2]
         elif u1 <= 1 and u2 <= 1:
             if op == '&':
                 return u1 & u2
             elif op == '|':
                 return u1 | u2
         elif var1 == var2:
-            self.G[u1][u2] =  self.mk(var1,
-                           self.apply_op(op, b1, b2, b1.get_low(u1), b2.get_low(u2)),
-                           self.apply_op(op, b1, b2, b1.get_high(u1), b2.get_high(u2)))
+            G[u1][u2] = self.mk(var1,
+                            self.apply_op(op, b1, b2, b1.get_low(u1), b2.get_low(u2)),
+                            self.apply_op(op, b1, b2, b1.get_high(u1), b2.get_high(u2)))
 
         elif var1 < var2:
-            self.G[u1][u2] = self.mk(var1,
+            G[u1][u2] = self.mk(var1,
                            self.apply_op(op, b1, b2, b1.get_low(u1), u2),
                            self.apply_op(op, b1, b2, b1.get_high(u1), u2))
         elif var1 > var2:
-            self.G[u1][u2] = self.mk(var2,
+            G[u1][u2] = self.mk(var2,
                            self.apply_op(op, b1, b2, u1, b2.get_low(u2)),
                            self.apply_op(op, b1, b2, u1, b2.get_high(u2)))
-        return self.G[u1][u2]
+        return G[u1][u2]
 
     def complement(self):
-        for i in self.T[2:]:
+        for i in range(2, self.N+2):
             if self.T[i][1] == 0:
                 self.T[i][1] = 1
             elif self.T[i][1] == 1:
@@ -101,6 +100,10 @@ class bdd:
                 self.T[i][2] = 0
 
     def intersection(self, b1, b2):
+        global G
+        for i in range(34):
+            for j in range(34):
+                G[i][j] = -1
         self.apply_op('&', b1, b2)
 
     def subtract(self, b1, b2):
@@ -109,6 +112,10 @@ class bdd:
         self.intersection(b1, b2_copy)
 
     def union(self,  b1, b2):
+        global G
+        for i in range(34):
+            for j in range(34):
+                G[i][j] = -1
         self.apply_op('|', b1, b2)
 
     def get_u(self, var):
@@ -136,12 +143,31 @@ class bdd:
             print '%d %d %d %d'%(i+2, self.T[i+2][0], self.T[i+2][1], self.T[i+2][2])
 
     def is_false(self):
-        # TODO
-        return  False
+        a = self.any_sat()
+        if a is None:
+            return True
+        else:
+            return False
 
-    def any_sat(self):
-        # TODO
-        return 1
+    def any_sat(self, u=-1):
+        if u == -1:
+            u = self.N + 1
+        if u == 0:
+            return None
+        elif u == 1:
+            return []
+        elif self.get_low(u) == 0:
+            a = self.any_sat(self.get_high(u))
+            if a is None:
+                return None
+            else:
+                return [1] + a
+        else:
+            a = self.any_sat(self.get_low(u))
+            if a is None:
+                return None
+            else:
+                return [0] + a
 
 
 def create_true_bdd(n):
