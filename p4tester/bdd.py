@@ -57,9 +57,6 @@ class bdd:
 
     def apply_op(self, op, b1, b2, u1=-1, u2=-1):
         global G
-        for i in range(34):
-            for j in range(34):
-                G[i][j] = -1
         if u1 == -1 and u2 == -1:
             u1 = self.N + 1
             u2 = self.N + 1
@@ -172,17 +169,18 @@ class bdd:
 
 def create_true_bdd(n):
     b = bdd(n)
-    for i in range(n):
-        b.T.append((n - i, n - i, n - i))
+    for i in range(2, n + 2):
+        b.T[i][1] = i - 1
+        b.T[i][2] = i - 1
     return b
 
 
-def create_false_bdd(n):
-    b = bdd(n)
-    for i in range(n):
-        b.T.append((n - i, n - i, n - i))
-    b.T[n + 1][1] = 0
-    b.T[n + 1][2] = 0
-    return b
+# def create_false_bdd(n):
+#    b = bdd(n)
+#    for i in range(n):
+#        b.T.append([n - i, 0, 0])
+#    b.T[n + 1][1] = 0
+#    b.T[n + 1][2] = 0
+#    return b
 
 
